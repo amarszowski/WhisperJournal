@@ -31,7 +31,7 @@ export default function RecordScreen() {
   const [isRecording, setIsRecording] = React.useState<
     Audio.Recording | undefined
   >();
-  const [status, setStatus] = React.useState('Initializing...');
+  const [status, setStatus] = React.useState('Inicjalizowanie...');
   const [elapsed, setElapsed] = React.useState<number | undefined>();
   const [progress, setProgress] = React.useState<number>(-1);
   const [intervalFn, setIntervalFn] = React.useState<
@@ -50,10 +50,10 @@ export default function RecordScreen() {
   }
 
   React.useEffect(() => {
-    log('called useEffect hook');
+    log('wywołano hook useEffect');
     if (!loadedModel || loadedModel !== settings.modelName) {
       setStatusAndLog(
-        `Downloading and initializing model ${settings.modelName}`,
+        `Pobieranie i inicjalizowanie modelu ${settings.modelName}`,
       );
       setCanRecord(false);
       initializeContext(
@@ -71,17 +71,17 @@ export default function RecordScreen() {
       ).then(() => {
         setLoadedModel(settings.modelName);
         setCanRecord(true);
-        setStatusAndLog('Ready to record!');
+        setStatusAndLog('Gotowy do nagrywania!');
       });
     }
   }, [whisperContext, settings.modelName, loadedModel]);
 
   async function transcribe(filename: string) {
     if (!whisperContext) {
-      return log('No context');
+      return log('Brak kontekstu');
     }
 
-    setStatusAndLog('Transcribing...');
+    setStatusAndLog('Transkrypcja...');
     const startTime = Date.now();
     const options: TranscribeFileOptions = {
       language: settings.modelName.endsWith('.en') ? 'en' : settings.language,
@@ -97,14 +97,13 @@ export default function RecordScreen() {
           _progress /
           1000
         ).toFixed(0);
-        setStatusAndLog(`Transcribing...\nestimated time left: ${timeLeft}s`);
+        setStatusAndLog(`Transkrypcja...\nPrzewidywany czas pozostały: ${timeLeft}s`);
       },
       onNewSegments: segment => {
         log(segment.result);
       },
     };
     log(options);
-    // TODO: would this work with SAF URIs?
     const {
       // stop,
       promise,
@@ -112,31 +111,30 @@ export default function RecordScreen() {
     promise.then(transcript => {
       const endTime = Date.now();
       log(
-        `Transcribed result: ${transcript.result}\n` +
-          `Transcribed in ${endTime - startTime}ms`,
+        `Zapisano wynik transkrypcji: ${transcript.result}\n` +
+          `Transkrypcja ukończona w czasie ${endTime - startTime}ms`,
       );
-      setStatusAndLog(`Finished transcribing in ${endTime - startTime}ms!`);
+      setStatusAndLog(`Zakończono transkrypcję w czasie ${endTime - startTime}ms!`);
     });
     promise.catch(error => {
-      setStatusAndLog(error);
+      setStatusAndLog(`Błąd: ${error}`);
     });
     return promise;
   }
 
   async function startRecording() {
     try {
-      setStatusAndLog('Requesting permissions...');
+      setStatusAndLog('Żądanie uprawnień...');
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
-      // unload existing recording if it exists
       if (isRecording) {
-        setStatusAndLog('Stopping prior recrording...');
+        setStatusAndLog('Zatrzymywanie poprzedniego nagrywania...');
         await isRecording.stopAndUnloadAsync();
       }
-      setStatusAndLog('Starting recording...');
+      setStatusAndLog('Rozpoczynanie nagrywania...');
       const {recording} = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
@@ -148,15 +146,15 @@ export default function RecordScreen() {
       }, 1000);
       setIntervalFn(interval);
       setIsRecording(recording);
-      setStatusAndLog('Recording...');
+      setStatusAndLog('Nagrywanie...');
     } catch (err) {
-      setStatusAndLog(`Failed to start recording: ${err}`, console.error);
+      setStatusAndLog(`Nie udało się rozpocząć nagrywania: ${err}`, console.error);
     }
   }
 
   async function stopRecording() {
     if (isRecording) {
-      setStatusAndLog('Stopping recording...');
+      setStatusAndLog('Zatrzymywanie nagrywania...');
       clearInterval(intervalFn);
       setElapsed(undefined);
       setIntervalFn(undefined);
@@ -166,17 +164,12 @@ export default function RecordScreen() {
         allowsRecordingIOS: false,
       });
       const uri = isRecording.getURI();
-      log(`Recording stopped and stored at ${uri}`);
-      // use ffmpeg to convert output file to 16-bit wav for whisper
-      // TODO: can ffmpeg write straight to the SAF URI?
-      // we write to the document directory first
-      // then if it's an SAF URI, we move it to the journalDir
+      log(`Nagrywanie zatrzymane i zapisane w ${uri}`);
       const fileName = getFilename('');
       const uriOut = `${docDir.fileDir}${fileName}.wav`;
       const wavFile = `${fileName}.wav`;
-      // TODO: ensure that the journalDir.fileDir itself exists
       await ensureDirExists(docDirName);
-      setStatusAndLog('Converting file...');
+      setStatusAndLog('Konwertowanie pliku...');
       const noiseReductionString = settings.noiseReduction
         ? '-af "afftdn=nf=-25" '
         : '';
@@ -186,17 +179,14 @@ export default function RecordScreen() {
         const returnCode = await session.getReturnCode();
 
         if (ReturnCode.isSuccess(returnCode)) {
-          log(`Converted file successfully written to ${uriOut}`);
-          // if saf journalDir, create copy
+          log(`Pomyślnie zapisano przekonwertowany plik do ${uriOut}`);
           if (journalDir.saf) {
-            // TODO: not sure whether x-wav will work for all platforms
             const wavUri =
               await FileSystem.StorageAccessFramework.createFileAsync(
                 journalDir.fileDir,
                 fileName,
                 'audio/x-wav',
               );
-            // read converted file and copy to file system
             const base64wav = await FileSystem.readAsStringAsync(uriOut, {
               encoding: 'base64',
             });
@@ -206,13 +196,11 @@ export default function RecordScreen() {
               {encoding: 'base64'},
             );
           }
-          // initiate transcription
           const transcript = await transcribe(wavFile);
           if (transcript) {
             const {result} = transcript;
-            setStatusAndLog('Writing to file...');
+            setStatusAndLog('Zapisywanie do pliku...');
             let transcriptName = `${docDir.fileDir}${fileName}.md`;
-            // create SAF file before writing to it
             if (journalDir.saf) {
               transcriptName =
                 await FileSystem.StorageAccessFramework.createFileAsync(
@@ -220,24 +208,20 @@ export default function RecordScreen() {
                   fileName,
                   'text/markdown',
                 );
-              // delete wav in document directory
               FileSystem.deleteAsync(uriOut, {idempotent: true}).then(() => {
-                log(`deleted ${uriOut} successfully`);
+                log(`Pomyślnie usunięto ${uriOut}`);
               });
             }
             FileSystem.writeAsStringAsync(transcriptName, result.trim()).then(
               () => {
-                setStatusAndLog(`Done writing to file '${fileName}'!`);
+                setStatusAndLog(`Zakończono zapisywanie do pliku '${fileName}'!`);
               },
             );
           }
-          // SUCCESS
         } else if (ReturnCode.isCancel(returnCode)) {
-          // CANCEL
-          log('cancelled');
+          log('Anulowano');
         } else {
-          // ERROR
-          log('error');
+          log('Błąd');
         }
       });
     }

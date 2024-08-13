@@ -46,7 +46,7 @@ export default function App() {
   const [modelName, setModelName] = React.useState<ModelName>('tiny');
   const [language, setLanguage] = React.useState('auto');
   const [translate, setTranslate] = React.useState(false);
-  const [noiseReduction, setNoiseReduction] = React.useState(true);
+  const [noiseReduction, setNoiseReduction] = React.useState(false);
   const [shouldWrite, setShouldWrite] = React.useState(false);
   const [journalDir, setJournalDir] = React.useState<FileDirectoryType>(docDir);
   const settings = React.useMemo(() => {

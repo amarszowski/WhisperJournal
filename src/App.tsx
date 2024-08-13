@@ -26,19 +26,14 @@ function HomeTabs() {
   return (
     <Tab.Navigator initialRouteName="Record">
       <Tab.Screen
-        name="Journal"
+        name="Zapisane nagrania"
         component={JournalScreen}
         options={{tabBarIcon: 'book'}}
       />
       <Tab.Screen
-        name="Record"
+        name="Nagraj"
         component={RecordScreen}
         options={{tabBarIcon: 'record-circle'}}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{tabBarIcon: 'cog'}}
       />
     </Tab.Navigator>
   );
@@ -48,9 +43,9 @@ export default function App() {
   const isThemeDark = useColorScheme() === 'dark';
   const theme = isThemeDark ? CombinedDarkTheme : CombinedDefaultTheme;
 
-  const [modelName, setModelName] = React.useState<ModelName>(allModelNames[0]);
+  const [modelName, setModelName] = React.useState<ModelName>('tiny');
   const [language, setLanguage] = React.useState('auto');
-  const [translate, setTranslate] = React.useState(true);
+  const [translate, setTranslate] = React.useState(false);
   const [noiseReduction, setNoiseReduction] = React.useState(true);
   const [shouldWrite, setShouldWrite] = React.useState(false);
   const [journalDir, setJournalDir] = React.useState<FileDirectoryType>(docDir);

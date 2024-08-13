@@ -134,7 +134,7 @@ export default function JournalScreen({navigation}: Props) {
   return (
     <View style={styles.view}>
       <List.Section style={styles.flex}>
-        <List.Subheader>Journal Entries</List.Subheader>
+        <List.Subheader>Zapisane nagrania</List.Subheader>
         <FlatList
           data={Object.keys(entries).sort()}
           renderItem={renderItem}
@@ -144,7 +144,7 @@ export default function JournalScreen({navigation}: Props) {
           }
           ItemSeparatorComponent={Divider}
           ListEmptyComponent={
-            <List.Item title="No entries; record something to see it here." />
+            <List.Item title="Brak nagrań" />
           }
           scrollEnabled={true}
         />

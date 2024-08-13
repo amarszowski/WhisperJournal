@@ -189,15 +189,20 @@ export async function initializeContext(
 
   log('Initialize context...');
   const startTime = Date.now();
-  const ctx = await initWhisper({
-    filePath: modelFilePath,
-    coreMLModelAsset:
-      Platform.OS === 'ios'
-        ? {filename: `${dir}/ggml-${modelName}-encoder.mlmodelc`, assets: []}
-        : undefined,
-  });
-  const endTime = Date.now();
-  log(`Loaded model, ID: ${ctx.id}`);
-  log(`Loaded model ${modelName} in ${endTime - startTime} ms`);
-  setWhisperContext(ctx);
+  try {
+      const ctx = await initWhisper({
+          filePath: modelFilePath,
+          coreMLModelAsset:
+            Platform.OS === 'ios'
+              ? {filename: `${dir}/ggml-${modelName}-encoder.mlmodelc`, assets: []}
+              : undefined,
+        });
+    const endTime = Date.now();
+      log(`Loaded model, ID: ${ctx.id}`);
+      log(`Loaded model ${modelName} in ${endTime - startTime} ms`);
+      setWhisperContext(ctx);
+  } catch (error) {
+      log(`Error during context initialization: ${error.message}`);
+  }
+
 }

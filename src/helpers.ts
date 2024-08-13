@@ -155,21 +155,23 @@ export async function initializeContext(
     log('Released previous context');
   }
   await ensureDirExists(dir);
+
+  // Path to the model file in the assets directory
+  const assetModelFilePath = FileSystem.bundleDirectory + `/assets/ggml-${modelName}.bin`;
   const modelFilePath = `${dir}/ggml-${modelName}.bin`;
-  if ((await FileSystem.getInfoAsync(modelFilePath)).exists) {
-    log(`Model ${modelName} already exists`);
+
+  // Copy the model from assets to the app's file system if it doesn't exist
+  if (!(await FileSystem.getInfoAsync(modelFilePath)).exists) {
+    log(`Copying model ${modelName} from assets to ${modelFilePath}`);
+    await FileSystem.copyAsync({
+      from: assetModelFilePath,
+      to: modelFilePath,
+    });
   } else {
-    log(`Start Download Model ${modelName}`);
-    const download = FileSystem.createDownloadResumable(
-      `${modelHost}/ggml-${modelName}.bin`,
-      modelFilePath,
-      {},
-      downloadCallback,
-    );
-    download.downloadAsync();
+    log(`Model ${modelName} already exists in ${modelFilePath}`);
   }
 
-  // enable Core ML on iOS
+  // Enable Core ML on iOS
   const coremlModelFilePath = `${dir}/ggml-${modelName}-encoder.mlmodelc.zip`;
   if (
     Platform.OS === 'ios' &&
@@ -190,19 +192,18 @@ export async function initializeContext(
   log('Initialize context...');
   const startTime = Date.now();
   try {
-      const ctx = await initWhisper({
-          filePath: modelFilePath,
-          coreMLModelAsset:
-            Platform.OS === 'ios'
-              ? {filename: `${dir}/ggml-${modelName}-encoder.mlmodelc`, assets: []}
-              : undefined,
-        });
+    const ctx = await initWhisper({
+      filePath: modelFilePath,
+      coreMLModelAsset:
+        Platform.OS === 'ios'
+          ? {filename: `${dir}/ggml-${modelName}-encoder.mlmodelc`, assets: []}
+          : undefined,
+    });
     const endTime = Date.now();
-      log(`Loaded model, ID: ${ctx.id}`);
-      log(`Loaded model ${modelName} in ${endTime - startTime} ms`);
-      setWhisperContext(ctx);
+    log(`Loaded model, ID: ${ctx.id}`);
+    log(`Loaded model ${modelName} in ${endTime - startTime} ms`);
+    setWhisperContext(ctx);
   } catch (error) {
-      log(`Error during context initialization: ${error.message}`);
+    log(`Error during context initialization: ${error.message}`);
   }
-
 }
